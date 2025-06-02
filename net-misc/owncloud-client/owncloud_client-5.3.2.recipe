@@ -1,0 +1,117 @@
+SUMMARY="Desktop Syncing Client for ownCloud"
+DESCRIPTION="The ownCloud Desktop Client is a tool to synchronize \
+files from ownCloud Server with your computer."
+HOMEPAGE="https://owncloud.com/"
+COPYRIGHT="Klaas Freitag
+ownCloud GmbH"
+LICENSE="GNU GPL v2"
+REVISION="1"
+SOURCE_URI="https://github.com/owncloud/client/archive/refs/tags/v$portVersion.tar.gz"
+CHECKSUM_SHA256="3663a168bd0a8cbc0539ef98c6a0acd9035dafee17fba7de8e797cf12805952e"
+SOURCE_DIR="client-$portVersion"
+#PATCHES="owncloud_client-$portVersion.patchset"
+
+ARCHITECTURES="all !x86_gcc2"
+SECONDARY_ARCHITECTURES="x86"
+
+# On x86_gcc2 we don't want to install the commands in bin/<arch>/, but in bin/.
+commandBinDir=$binDir
+commandSuffix=$secondaryArchSuffix
+if [ "$targetArchitecture" = x86_gcc2 ]; then
+	commandSuffix=
+	commandBinDir=$prefix/bin
+fi
+
+libVersion="$portVersion"
+libVersionCompat="$libVersion compat >= ${libVersion%%.*}"
+
+PROVIDES="
+	cmd:owncloud
+	cmd:owncloudcmd
+	libowncloud_csync${secondaryArchSuffix} = $portVersion
+	libowncloudsync${secondaryArchSuffix} = $portVersion
+	lib:libowncloud_csync$secondaryArchSuffix = $portVersion
+	lib:libowncloudsync$secondaryArchSuffix = $portVersion
+	"
+REQUIRES="
+	haiku${secondaryArchSuffix}
+	lib:libcmocka$secondaryArchSuffix
+	lib:libQt6Concurrent$secondaryArchSuffix
+	lib:libQt6Core$secondaryArchSuffix
+	lib:libQt6DBus$secondaryArchSuffix
+	lib:libQt6Gui$secondaryArchSuffix >= 6.7.2
+	lib:libqt5keychain$secondaryArchSuffix
+	lib:libqt5Network$secondaryArchSuffix
+	lib:libqt5Test$secondaryArchSuffix
+	lib:libQt6Widgets$secondaryArchSuffix
+	lib:libQt6Xml$secondaryArchSuffix
+	lib:libsqlite3$secondaryArchSuffix
+	lib:libz$secondaryArchSuffix
+	"
+
+PROVIDES_devel="
+	libowncloud_csync${secondaryArchSuffix}_devel = $portVersion
+	libowncloudsync${secondaryArchSuffix}_devel = $portVersion
+	devel:libowncloud_csync$secondaryArchSuffix = $portVersion
+	devel:libowncloudsync$secondaryArchSuffix = $portVersion
+	"
+REQUIRES_devel="
+	owncloud_client${secondaryArchSuffix} == $portVersion base
+	devel:libQt6Gui$secondaryArchSuffix >= 6.7.2
+	"
+
+BUILD_REQUIRES="
+	haiku${secondaryArchSuffix}_devel
+	extra_cmake_modules$secondaryArchSuffix
+	devel:libcmocka$secondaryArchSuffix
+	devel:libQt6Concurrent$secondaryArchSuffix
+	devel:libQt6Core$secondaryArchSuffix
+	devel:libQt6DBus$secondaryArchSuffix
+	devel:libQt6Gui$secondaryArchSuffix >= 6.7.2
+	devel:libqt6keychain$secondaryArchSuffix
+	devel:libqt6Network$secondaryArchSuffix
+	devel:libqt6Test$secondaryArchSuffix
+	devel:libQt6Widgets$secondaryArchSuffix
+	devel:libQt6Xml$secondaryArchSuffix
+	devel:libsqlite3$secondaryArchSuffix
+	devel:libz$secondaryArchSuffix
+	"
+BUILD_PREREQUIRES="
+	cmd:cmake
+	cmd:g++${secondaryArchSuffix}
+	cmd:ld$secondaryArchSuffix
+	cmd:linguist
+	cmd:make
+	cmd:pkg_config$secondaryArchSuffix
+	cmd:qmake$secondaryArchSuffix
+	"
+
+BUILD()
+{
+	cmake -B build -S . $cmakeDirArgs \
+		-DCMAKE_INSTALL_BINDIR=$commandBinDir \
+		-DINCLUDE_INSTALL_DIR=$includeDir \
+		-DSYSCONF_INSTALL_DIR=$settingsDir \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DECM_DIR=/system/data/cmake/Modules/ECM/cmake \
+		-DZLIB_LIBRARY=/system/$relativeDevelopLibDir/libz.so \
+		-DWITH_DOC=ON -Wno-dev
+	make -C build $jobArgs
+}
+
+INSTALL()
+{
+	cd build
+	make install
+
+	# we did tell you it does not belong here already...
+	mkdir -p $includeDir
+	mv $prefix/include/owncloudsync $includeDir/
+	rmdir $prefix/include
+
+	prepareInstalledDevelLibs \
+		libowncloud_csync \
+		libowncloudsync
+	packageEntries devel \
+		$developDir
+}
