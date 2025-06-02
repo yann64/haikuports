@@ -1,0 +1,50 @@
+SUMMARY="The limine bootloader"
+DESCRIPTION=" Limine is an advanced, portable, multiprotocol bootloader that supports Linux, \
+multiboot1 and 2, the native Limine boot protocol, and more. "
+HOMEPAGE="https://limine-bootloader.org/"
+COPYRIGHT="2019-2025 Mintsuki and contributors"
+LICENSE="BSD (2-clause)"
+REVISION="1"
+SOURCE_URI="https://github.com/limine-bootloader/limine/releases/download/v$portVersion/limine-$portVersion.tar.xz"
+CHECKSUM_SHA256="667645f76c1cae1f074490b3edb90fad96cddcc9ca91cfb551df46ac4f867421"
+
+ARCHITECTURES="all !x86_gcc2"
+SECONDARY_ARCHITECTURES="x86"
+
+PROVIDES="
+	limine$secondaryArchSuffix = $portVersion
+	cmd:limine$secondaryArchSuffix
+	"
+
+REQUIRES="
+        haiku$secondaryArchSuffix
+        "
+
+BUILD_REQUIRES="
+        haiku${secondaryArchSuffix}_devel
+        "
+
+BUILD_PREREQUIRES="
+	cmd:awk
+	cmd:clang >= 18
+	cmd:gcc$secondaryArchSuffix # needed for clang
+	cmd:lld >= 18
+	cmd:llvm_objcopy
+	cmd:make
+	cmd:mtools
+	cmd:nasm
+	"
+
+BUILD()
+{
+	runConfigure ./configure \
+		--enable-all \
+		--disable-uefi-loongarch64 \
+		TOOLCHAIN_FOR_TARGET=llvm
+	make $jobArgs
+}
+
+INSTALL()
+{
+	make install
+}

@@ -1,0 +1,92 @@
+SUMMARY="A DOS emulator for running DOS applications and games"
+DESCRIPTION="DOSBox-X is an open-source DOS emulator for running \
+DOS applications and games. DOS-based Windows such as Windows 3.x \
+and Windows 9x are officially supported. Compared to DOSBox, DOSBox-X \
+is much more flexible and provides more features."
+HOMEPAGE="https://dosbox-x.com/"
+COPYRIGHT="2002-2025 The DOSBox-X Team"
+LICENSE="GNU GPL v2"
+REVISION="2"
+SOURCE_URI="https://github.com/joncampbell123/dosbox-x/archive/refs/tags/dosbox-x-v$portVersion.tar.gz"
+SOURCE_DIR="dosbox-x-dosbox-x-v$portVersion"
+CHECKSUM_SHA256="b29a2c9c38bfe1d1c1f2420d546b8c2456ae2ddce4c1f6b4d19f258841ce1581"
+ADDITIONAL_FILES="dosbox.rdef.in"
+
+ARCHITECTURES="all !x86_gcc2"
+SECONDARY_ARCHITECTURES="?x86"
+
+PROVIDES="
+	dosbox_x$secondaryArchSuffix = $portVersion
+	app:DOSBox_X = $portVersion
+	"
+REQUIRES="
+	haiku$secondaryArchSuffix
+	cmd:kdialog
+	lib:libGL$secondaryArchSuffix
+	lib:libglu$secondaryArchSuffix
+	lib:libncurses$secondaryArchSuffix
+	lib:libpng16$secondaryArchSuffix
+	lib:libz$secondaryArchSuffix
+	"
+
+BUILD_REQUIRES="
+	haiku${secondaryArchSuffix}_devel
+	devel:libGL$secondaryArchSuffix
+	devel:libglu$secondaryArchSuffix
+	devel:libncurses$secondaryArchSuffix
+	devel:libpng16$secondaryArchSuffix
+	devel:libz$secondaryArchSuffix
+	"
+BUILD_PREREQUIRES="
+	cmd:aclocal
+	cmd:autoconf
+	cmd:find
+	cmd:gcc$secondaryArchSuffix
+	cmd:ld$secondaryArchSuffix
+	cmd:libtoolize$secondaryArchSuffix
+	cmd:make
+	cmd:pkg_config$secondaryArchSuffix
+	"
+
+BUILD()
+{
+	chmod +x build
+	chmod +x build-debug
+	chmod +x autogen.sh
+	chmod +x vs/sdl/build-dosbox.sh
+	chmod +x vs/sdl/autogen.sh
+	chmod +x vs/sdlnet/build-dosbox.sh
+	chmod +x vs/sdlnet/autogen.sh
+
+	./build-debug --datarootdir=$dataDir --datadir=$dataDir --bindir=$binDir
+}
+
+INSTALL()
+{
+	make install
+
+	mkdir $appsDir
+	mv $binDir/dosbox-x $appsDir/DOSBox-X
+	rm -rf $binDir
+	strip $appsDir/DOSBox-X
+
+	mv /usr/share/dosbox-x $dataDir
+
+	local MAJOR="`echo "$portVersion" | cut -d. -f1`"
+	local MIDDLE="`echo "$portVersion" | cut -d. -f2`"
+	local MINOR="`echo "$portVersion" | cut -d. -f3`"
+	local APP_NAME="DOSBox-X"
+	local LONG_INFO="$SUMMARY"
+	local APP_SIGNATURE="application/x-vnd.dosbox-x"
+	sed \
+		-e "s|@MAJOR@|$MAJOR|" \
+		-e "s|@MIDDLE@|$MIDDLE|" \
+		-e "s|@MINOR@|$MINOR|" \
+		-e "s|@LONG_INFO@|$LONG_INFO|" \
+		-e "s|@APP_NAME@|$APP_NAME|" \
+		-e "s|@APP_SIGNATURE@|$APP_SIGNATURE|" \
+		$portDir/additional-files/dosbox.rdef.in > dosbox.rdef
+
+	addResourcesToBinaries dosbox.rdef $appsDir/DOSBox-X
+	addAppDeskbarSymlink $appsDir/DOSBox-X
+}
